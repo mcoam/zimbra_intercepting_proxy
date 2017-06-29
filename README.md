@@ -36,9 +36,10 @@ This tutorial is based on the following setup:
 Also, the new Zimbra Proxy should be running on CentOS 7.
 
 ### Zimbra8 Mailbox requirements 
+For migration disable all communication about SSL 
 
 ```
-zmlocalconfig -e zimbra_require_interprocess_security=1
+zmlocalconfig -e zimbra_require_interprocess_security=0
 zmlocalconfig -e zimbra_require_interprocess_security=0
 zmprov ms `zmhostname` zimbraMailMode both
 zmmailboxdctl restart
