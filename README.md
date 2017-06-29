@@ -35,6 +35,15 @@ This tutorial is based on the following setup:
 
 Also, the new Zimbra Proxy should be running on CentOS 7.
 
+### Zimbra8 Mailbox requirements 
+
+```
+zmlocalconfig -e zimbra_require_interprocess_security=1
+zmlocalconfig -e zimbra_require_interprocess_security=0
+zmprov ms `zmhostname` zimbraMailMode both
+zmmailboxdctl restart
+```
+
 ### 1. Install Docker on the Zimbra Proxy Server
 
 ```
