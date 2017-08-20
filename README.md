@@ -217,6 +217,7 @@ $ docker ps
 
 * For `stop` service:  `systemctl stop docker-zproxy`
 * For `start` service:  `systemctl start docker-zproxy`
+* For `status` service:  `systemctl status docker-zproxy`
 
 For remove or disable the service
 
@@ -227,21 +228,19 @@ For remove or disable the service
 
 For monitoring we have `monit` service. The next config check port `9090` and start service if port is down.
 
-* Create file `/etc/monit.d/docker-zproxy` and (copy/paste) the next setence
-
-Install service
+* Install service
 
 ```
 yum install monit -y
 ```
 
-Create monit config for service
+* Create file `/etc/monit.d/docker-zproxy` and (copy/paste) the next setence
 
 ```
 check host localhost with address localhost
     start program = "/usr/sbin/service docker-zproxy start"
     stop program  = "/usr/sbin/service docker-zproxy stop"
-    alert mcoa@citroen.cl
+    alert mcoa@example.com
     if failed port 9090
       with timeout 3 seconds
       then restart
