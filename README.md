@@ -215,8 +215,8 @@ $ systemctl status docker-zproxy
 $ docker ps
 ```
 
-For `stop` service:  `systemctl stop docker-zproxy`
-For `start` service:  `systemctl start docker-zproxy`
+* For `stop` service:  `systemctl stop docker-zproxy`
+* For `start` service:  `systemctl start docker-zproxy`
 
 For remove or disable the service
 
