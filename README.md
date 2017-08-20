@@ -242,8 +242,7 @@ check host localhost with address localhost
     start program = "/usr/sbin/service docker-zproxy start"
     stop program  = "/usr/sbin/service docker-zproxy stop"
     alert mcoa@citroen.cl
-    if failed port 9090 protocol HTTP
-    #  request /
+    if failed port 9090
       with timeout 3 seconds
       then restart
 ```
