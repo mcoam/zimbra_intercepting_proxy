@@ -1,0 +1,17 @@
+#https://github.com/coreos/docs/issues/418
+[Unit]
+Description=ZBox Docker Zproxy
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=/usr/bin/docker kill zimbra_zip #comandos para ejecutar antes de dar el start
+ExecStartPre=/usr/bin/docker rm zimbra_zip #idem
+ExecStart=/usr/bin/docker run --name zimbra_zip -ti --dns=10.13.28.16 -p 9090:9090 -e ZIMBRA_USER=zimbra@example.com -e ZIMBRA_PASSWORD=Password -e NAMESERVERS=10.13.28.16 -e ZIMBRA_SOAP=https://mail.example.com:7071/service/admin/soap -e DEFAULT_MAILBOX_IP=10.13.210.43  MAILBOXES_MAPPING='zimbra-mbx2.example.com:10.13.138.81:8080:110:143:true;zimbra-mbx1.example.com:10.13.138.80:8080:110:143:true;mail.example.com:10.13.210.43:80:110:143' -e PREFIX_PATH=/zimbra -e VERBOSE=true itlinuxcl/zimbra_zip:0.6.16 #se lanza el proceso
+ExecStop=/usr/bin/docker stop zimbra_zip #se detiene el servicio
+#ExecStop=/usr/bin/docker stop 7cc2df0c0d0d
+
+[Install]
+WantedBy=multi-user.target

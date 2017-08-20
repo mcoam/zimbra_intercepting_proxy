@@ -65,21 +65,59 @@ $ zmprov ca zmproxy@example.com Password \
   zimbraAdminAuthTokenLifetime 100d \
   zimbraAuthTokenLifetime 100d
 ```
+### 4. Prerequisites
 
-### 4. Start the Container
+* On mailbox backends: check the service ports on listen the service (pop, imap, web)
+
+Ej: Standard ports: 110, 143, 80
+
+```
+[root@zimbra-mbx2 ~]# netstat -tlpn |egrep "143|110|80"
+tcp        0      0 0.0.0.0:110             0.0.0.0:*               LISTEN      2166/java
+tcp        0      0 0.0.0.0:143             0.0.0.0:*               LISTEN      2166/java
+tcp        0      0 0.0.0.0:80            0.0.0.0:*               LISTEN      2166/java
+```
+
+or Mailbox (if proxy configured): 7110, 7143, 8080
+
+```
+[root@zimbra-mbx2 ~]# netstat -tlpn |egrep "143|110|80"
+tcp        0      0 0.0.0.0:7110             0.0.0.0:*               LISTEN      2166/java
+tcp        0      0 0.0.0.0:7143             0.0.0.0:*               LISTEN      2166/java
+tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      2166/java
+```
+
+* On default mailbox configure `zimbraMailTransport` for user map.
+
+```
+## Map to Z8 - mailbox2
+zmprov ga raguirre@example.com |grep Transport
+zimbraMailTransport: lmtp:zimbra-mbx2.example.com:7025
+
+## Map to Z8 - mailbox1
+zmprov ga cmora@example.com |grep Transport
+zimbraMailTransport: lmtp:zimbra-mbx1.example.com:7025
+
+## Map to Zimbra 6 - single server
+zmprov ga plopez@example.com |grep Transport
+zimbraMailTransport: lmtp:mail.example.com:7025
+
+```
+
+### 5. Start the Container
 
 ```
 # Interactive Mode
-$ docker run --rm -ti --dns=192.168.80.81 -p 9090:9090 \
-  -e ZIMBRA_USER=zmproxy@example.com \
-  -e ZIMBRA_PASSWORD=Password \
-  -e NAMESERVERS=192.168.80.81 \
-  -e ZIMBRA_SOAP=https://any_new_mailbox:7071/service/admin/soap \
-  -e DEFAULT_MAILBOX_IP=192.168.80.81 \
-  -e MAILBOXES_MAPPING='192.168.80.81:8080:7110:7143:true;192.168.80.61:80:110:143' \
-  -e PREFIX_PATH=/zimbra \
-  -e VERBOSE=true \
-  itlinuxcl/zimbra_zip
+
+$ docker run -d --name zimbra_zip --dns=10.13.28.16 -p 9090:9090 \
+-e ZIMBRA_USER=zimbra@example.com \
+-e ZIMBRA_PASSWORD=Password \
+-e NAMESERVERS=10.13.28.16 \
+-e ZIMBRA_SOAP=https://mail.example.com:7071/service/admin/soap \
+-e DEFAULT_MAILBOX_IP=10.13.210.43 \
+-e MAILBOXES_MAPPING='zimbra-mbx2.example.com:10.13.138.81:8080:110:143:true;zimbra-mbx1.example.com:10.13.138.80:8080:110:143:true;mail.example.com:10.13.210.43:80:110:143' \
+-e PREFIX_PATH=/zimbra \
+-e VERBOSE=true itlinuxcl/zimbra_zip:0.6.16
 
 # Background just change this line
 $ docker run -d --name zimbra_zip --dns=192.168.80.81 -p 9090:9090 \
@@ -98,37 +136,123 @@ About the variables:
 * `ZIMBRA_PASSWORD`, password for the admin user,
 * `NAMESERVERS`, an IP address of a DNS server that can resolv all mailboxes, including old and new,
 * `ZIMBRA_SOAP`, url of a mailbox where to do the lookups,
-* `DEFAULT_MAILBOX_IP`, one of the mailboxes on the new platform
+* `DEFAULT_MAILBOX_IP`, one of the mailboxes on the new platform. The formats is:
 * `PREFIX_PATH`, the Zimbra 6 use a prefix when sending requests,
 * `MAILBOXES_MAPPING`, this holds the information of the port used in every mailbox.
 
 The syntax of `MAILBOXES_MAPPING` is:
 
 ```
-IP,WEB_P,POP_P,IMAP_P:REMOVE_PREFIX;IP,WEB_P,POP_P,IMAP_P:REMOVE_PREFIX;
+FQDN,SERVER_IP,WEB_PORT,POP_PORT,IMAP_PORT:true:FQDN,SERVER_IP,WEB_PORT,POP_PORT,IMAP_PORT:REMOVE_PREFIX;
 ```
 
 Where:
 
-* `IP`, ip of a mailbox
-* `WEB_P,POP_P,IMAP_P`, ports where listen the webmail, pop3, and imap services
+* `FQDN`, hostname `(zmhostname command)`
+* `SERVER_IP`, ip of a mailbox
+* `WEB_PORT,POP_PORT,IMAP_PORT`, ports where listen the webmail, pop3, and imap services (Check Prerequisites)
 * `REMOVE_PREFIX`, it ZmProxy shoud remove the `/zimbra` prefix for this mailbox
 
 You **must** list all the mailboxes here.
 
-### 5. Re-configure Zimbra Proxy and restart
+### 6. Re-configure Zimbra Proxy and restart
 
 ```
 $ /opt/zimbra/libexec/zmproxyconfgen
 $ /opt/zimbra/bin/zmproxyctl restart
 ```
 
-### 6. Check status
+### 7. Check status
 If you run the container in Interactive mode, you should see the logs on your screen, if not
 you can run the following command:
 
 ```
 $ docker logs zimbra_zip -f
+```
+
+### 8. Useful commands
+
+* `docker ps`, List docker status (container id dcffe71be046)
+* `docker rm dcffe71be046`, Remove docker container
+* `docker start zimbra_zip`, Start docker container
+* `docker stop zimbra_zip`, Stop docker container
+* `docker logs -f dcffe71be046 |grep user@domain.com`, Check container log for specific user
+
+### 9. Configure systemd service for docker image
+
+To enable or start the service, systemd needs to be reloaded our new service files:
+
+* Create file `/etc/systemd/system/docker-zproxy.service` and (copy/paste) the next setence:
+
+```
+[Unit]
+Description=ZBox zimbra_zip
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+#ExecStartPre=-/usr/bin/docker stop zimbra_zip
+ExecStartPre=-/usr/bin/docker rm zimbra_zip
+ExecStart=/usr/bin/docker run -d --name zimbra_zip --dns=10.13.28.16 -p 9090:9090 -e ZIMBRA_USER=zimbra@example.com -e ZIMBRA_PASSWORD=Passowrd -e NAMESERVERS=10.13.28.16 -e ZIMBRA_SOAP=https://mail.example.com:7071/service/admin/soap -e DEFAULT_MAILBOX_IP=10.13.210.43 -e MAILBOXES_MAPPING='zimbra-mbx2.example.com:10.13.138.81:8080:110:143:true;zimbra-mbx1.example.com:10.13.138.80:8080:110:143:true;mail.example.com:10.13.210.43:80:110:143' -e PREFIX_PATH=/zimbra -e VERBOSE=true itlinuxcl/zimbra_zip:0.6.16
+ExecStop=/usr/bin/docker stop zimbra_zip
+
+[Install]
+WantedBy=multi-user.target
+```
+
+And execute
+
+```
+systemctl daemon-reload
+systemctl start docker-zproxy
+```
+
+Finally, to confirm that everything worked:
+
+```
+$ systemctl status docker-zproxy
+$ docker ps
+```
+
+For `stop` service:  `systemctl stop docker-zproxy`
+For `start` service:  `systemctl start docker-zproxy`
+
+For remove or disable the service
+
+* Rename the file `mv /etc/systemd/system/docker-zproxy.service /etc/systemd/system/docker-zproxy.service.old`
+* Run: `systemctl reset-failed`
+
+### 10. Monitoring
+
+For monitoring we have `monit` service. The next config check port `9090` and start service if port is down.
+
+* Create file `/etc/monit.d/docker-zproxy` and (copy/paste) the next setence
+
+Install service
+
+```
+yum install monit -y
+```
+
+Create monit config for service
+
+```
+check host localhost with address localhost
+    start program = "/usr/sbin/service docker-zproxy start"
+    stop program  = "/usr/sbin/service docker-zproxy stop"
+    alert mcoa@citroen.cl
+    if failed port 9090 protocol HTTP
+    #  request /
+      with timeout 3 seconds
+      then restart
+```
+
+Check and reload config
+
+```
+monit -t
+service monit restart
 ```
 
 
