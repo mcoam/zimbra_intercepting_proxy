@@ -194,7 +194,7 @@ Requires=docker.service
 Restart=always
 #ExecStartPre=-/usr/bin/docker stop zimbra_zip
 ExecStartPre=-/usr/bin/docker rm zimbra_zip
-ExecStart=/usr/bin/docker run -d --name zimbra_zip --dns=10.13.28.16 -p 9090:9090 -e ZIMBRA_USER=zimbra@example.com -e ZIMBRA_PASSWORD=Passowrd -e NAMESERVERS=10.13.28.16 -e ZIMBRA_SOAP=https://mail.example.com:7071/service/admin/soap -e DEFAULT_MAILBOX_IP=10.13.210.43 -e MAILBOXES_MAPPING='zimbra-mbx2.example.com:10.13.138.81:8080:110:143:true;zimbra-mbx1.example.com:10.13.138.80:8080:110:143:true;mail.example.com:10.13.210.43:80:110:143' -e PREFIX_PATH=/zimbra -e VERBOSE=true itlinuxcl/zimbra_zip:0.6.16
+ExecStart=/usr/bin/docker run --name zimbra_zip --dns=10.13.28.16 -p 9090:9090 -e ZIMBRA_USER=zimbra@example.com -e ZIMBRA_PASSWORD=Passowrd -e NAMESERVERS=10.13.28.16 -e ZIMBRA_SOAP=https://mail.example.com:7071/service/admin/soap -e DEFAULT_MAILBOX_IP=10.13.210.43 -e MAILBOXES_MAPPING='zimbra-mbx2.example.com:10.13.138.81:8080:110:143:true;zimbra-mbx1.example.com:10.13.138.80:8080:110:143:true;mail.example.com:10.13.210.43:80:110:143' -e PREFIX_PATH=/zimbra -e VERBOSE=true itlinuxcl/zimbra_zip:0.6.16
 ExecStop=/usr/bin/docker stop zimbra_zip
 
 [Install]
