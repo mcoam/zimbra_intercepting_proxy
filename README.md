@@ -246,7 +246,7 @@ check host localhost with address localhost
       then restart
 ```
 
-Check and reload config
+* Check and reload config
 
 ```
 monit -t
